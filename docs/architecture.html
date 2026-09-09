@@ -579,8 +579,8 @@
         <h3>client/src/</h3>
         <div class="tree">
 <span class="dir">views/</span>          Dashboard, Inventory, Orders,
-              Demand, Spending, Reports,
-              Backlog  <span class="note">— one .vue per route</span>
+              Demand, Restocking, Spending,
+              Reports, Backlog  <span class="note">— one .vue per route</span>
 <span class="dir">components/</span>     FilterBar, *DetailModal ×4,
               ProfileMenu, TasksModal,
               LanguageSwitcher
@@ -589,7 +589,7 @@
 <span class="dir">locales/</span>        en.js, ja.js
 <span class="dir">utils/</span>          currency.js
 api.js          one axios call per endpoint
-main.js         vue-router, 6 top-level routes</div>
+main.js         vue-router, 7 top-level routes</div>
       </div>
       <div class="tree-card">
         <h3>server/</h3>
@@ -649,8 +649,18 @@ generate_data.py  <span class="note">— produced the sample data</span></div>
       <h3>Forecasting &amp; Backlog</h3>
       <table class="api">
         <tr><th>Route</th><th>Filters</th><th>Notes</th></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/demand</td><td class="filters">none</td><td class="desc">Forecasts with a trend label per SKU.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/demand</td><td class="filters">none</td><td class="desc">Forecasts with a trend label per SKU, plus <code>unit_cost</code>/<code>warehouse</code>/<code>category</code> used by restocking recommendations below.</td></tr>
         <tr><td class="path"><span class="method">GET</span>/api/backlog</td><td class="filters">none</td><td class="desc">Each item gets a computed <code>has_purchase_order</code> flag cross-referenced against <code>purchase_orders.json</code>.</td></tr>
+      </table>
+    </div>
+
+    <div class="api-block">
+      <h3>Restocking</h3>
+      <table class="api">
+        <tr><th>Route</th><th>Filters</th><th>Notes</th></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/restocking/recommendations</td><td class="filters">budget (required), warehouse, category</td><td class="desc">Greedy-by-urgency: ranks demand-forecast items by shortfall (<code>forecasted_demand - current_demand</code>), then fills the budget largest-shortfall-first. 400 if budget is missing or ≤ 0.</td></tr>
+        <tr><td class="path"><span class="method">POST</span>/api/restocking/orders</td><td class="filters">—</td><td class="desc">Submits an edited recommendation as a new order. Re-derives each SKU's shortfall server-side (400 if ineligible or over-cap) — the first POST endpoint in this app. Appends to the same in-memory <code>orders</code> list, tagged <code>order_type: "Restocking"</code>.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/restocking/orders</td><td class="filters">none</td><td class="desc">Lists submitted restocking orders with a computed <code>lead_time_days</code> (<code>expected_delivery - order_date</code>). Deliberately unfiltered by the global FilterBar.</td></tr>
       </table>
     </div>
 
@@ -658,9 +668,9 @@ generate_data.py  <span class="note">— produced the sample data</span></div>
       <h3>Dashboard &amp; Reports</h3>
       <table class="api">
         <tr><th>Route</th><th>Filters</th><th>Notes</th></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/dashboard/summary</td><td class="filters">warehouse, category, status, month</td><td class="desc">Aggregates inventory value, low-stock count, pending orders.</td></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/reports/quarterly</td><td class="filters">none</td><td class="desc">Groups all orders into Q1–Q4-2025, computes fulfillment rate.</td></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/reports/monthly-trends</td><td class="filters">none</td><td class="desc">Order count / revenue / delivered count per calendar month.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/dashboard/summary</td><td class="filters">warehouse, category, status, month</td><td class="desc">Aggregates inventory value, low-stock count, pending orders. Excludes <code>order_type: "Restocking"</code> orders — those are procurement spend, not customer revenue.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/reports/quarterly</td><td class="filters">none</td><td class="desc">Groups all orders into Q1–Q4-2025, computes fulfillment rate. Excludes restocking orders.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/reports/monthly-trends</td><td class="filters">none</td><td class="desc">Order count / revenue / delivered count per calendar month. Excludes restocking orders.</td></tr>
       </table>
     </div>
 
