@@ -135,7 +135,7 @@ export default {
   padding: 0.4rem 0.75rem;
   border: 1px solid #cbd5e1;
   border-radius: 6px;
-  font-size: 0.813rem;
+  font-size: 0.875rem;
   color: #0f172a;
   background: white;
   cursor: pointer;
@@ -182,5 +182,32 @@ export default {
 .reset-filters-btn svg {
   width: 18px;
   height: 18px;
+}
+
+/* Widened to 1024px (rather than 640px) because .app-topbar now also hosts
+   a hamburger button at this breakpoint, shrinking the row available to
+   FilterBar; the select row's min-content (4 x label + 140px select) never
+   fit in that reduced width, so the reset button was pushed off-screen for
+   the whole 641-1024px band without this. */
+@media (max-width: 1024px) {
+  .filters-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .filter-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: 0;
+    /* 16px min prevents iOS Safari zooming the viewport on focus */
+    font-size: 1rem;
+  }
 }
 </style>

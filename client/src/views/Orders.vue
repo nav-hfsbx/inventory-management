@@ -231,35 +231,41 @@ export default {
   font-size: 0.938rem;
 }
 
-/* Fixed table layout to prevent column shifting */
+/* table-layout: auto lets columns compress on the now-narrower content
+   column (sidebar took ~240px); fixed layout held them rigid and forced
+   scrolling far more often than necessary. */
 .orders-table {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
 }
 
-/* Column widths */
+/* Column floors reduced from the original fixed widths (which summed to
+   ~1040px) so scrolling engages less often; min-width still keeps each
+   column from collapsing unreadably. */
 .col-order-number {
-  width: 130px;
+  min-width: 110px;
 }
 
 .col-customer {
-  width: 180px;
+  min-width: 140px;
+  word-break: break-word;
 }
 
 .col-items {
-  width: 200px;
+  min-width: 160px;
+  word-break: break-word;
 }
 
 .col-status {
-  width: 130px;
+  min-width: 110px;
 }
 
 .col-date {
-  width: 140px;
+  min-width: 110px;
 }
 
 .col-value {
-  width: 120px;
+  min-width: 100px;
 }
 
 /* Items details styling */

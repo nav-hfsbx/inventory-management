@@ -1,7 +1,12 @@
 <template>
-  <aside class="app-sidebar" :class="{ collapsed }">
+  <div
+    v-if="mobileOpen"
+    class="sidebar-scrim"
+    @click="closeMobile"
+  ></div>
+  <aside id="app-sidebar" class="app-sidebar" :class="{ collapsed: railCollapsed, 'mobile-open': mobileOpen }">
     <div class="sidebar-header">
-      <div class="logo" v-if="!collapsed">
+      <div class="logo" v-if="!railCollapsed">
         <h1>{{ t('nav.companyName') }}</h1>
         <span class="subtitle">{{ t('nav.subtitle') }}</span>
       </div>
@@ -30,7 +35,7 @@
 
     <nav class="sidebar-nav" aria-label="Main">
       <template v-for="(group, groupIndex) in groupedNavItems" :key="group.group">
-        <div v-if="collapsed" class="group-divider" :class="{ first: groupIndex === 0 }"></div>
+        <div v-if="railCollapsed" class="group-divider" :class="{ first: groupIndex === 0 }"></div>
         <div v-else class="group-label" :class="{ first: groupIndex === 0 }">{{ t(`nav.${group.group}`) }}</div>
 
         <router-link
@@ -40,10 +45,10 @@
           class="nav-item"
           :class="{ active: $route.path === item.path }"
           :aria-current="$route.path === item.path ? 'page' : undefined"
-          :title="collapsed ? t(item.key) : undefined"
+          :title="railCollapsed ? t(item.key) : undefined"
         >
           <span class="nav-icon" v-html="icons[item.path]"></span>
-          <span v-if="!collapsed" class="nav-label">{{ t(item.key) }}</span>
+          <span v-if="!railCollapsed" class="nav-label">{{ t(item.key) }}</span>
         </router-link>
       </template>
     </nav>
@@ -68,8 +73,16 @@ import ProfileMenu from './ProfileMenu.vue'
 
 const emit = defineEmits(['show-profile-details', 'show-tasks'])
 
-const { collapsed, navItems, toggleCollapsed } = useSidebar()
+const { collapsed, mobileOpen, navItems, toggleCollapsed, closeMobile } = useSidebar()
 const { t } = useI18n()
+
+// Below the 1024px breakpoint the drawer (mobileOpen) always wins over the
+// desktop rail preference (collapsed) - a 64px icon rail plus a slide-in
+// drawer would be two competing behaviours. Template v-if/v-else blocks for
+// labels are gated on this instead of the raw `collapsed` ref so that
+// opening the drawer always shows full labels regardless of the persisted
+// desktop collapse state.
+const railCollapsed = computed(() => collapsed.value && !mobileOpen.value)
 
 // Group labels are resolved via t(`nav.${group.group}`) directly in the
 // template (not here) so they stay reactive to locale changes -- a
@@ -117,6 +130,70 @@ const icons = {
 
 .app-sidebar.collapsed {
   width: 64px;
+}
+
+/* Scrim sits below the drawer (z-index: 210) but above the desktop rail
+   (z-index: 100) and the sticky topbar (z-index: 50). Hidden above the
+   1024px breakpoint since the drawer/scrim only ever apply there. */
+.sidebar-scrim {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  /* Overlay drawer: fixed + off-canvas by default, slides in via transform
+     when mobileOpen is true. Safe to use transform here (unlike the rest of
+     the app shell) because at this breakpoint the sidebar is out of flow. */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    z-index: 210;
+    transform: translateX(-100%);
+    transition: transform 200ms ease;
+  }
+
+  /* Belt-and-braces: railCollapsed already keeps the .collapsed class off
+     the root while the drawer is open, but force the rail width back to
+     240px here too in case collapsed is ever applied at this breakpoint. */
+  .app-sidebar.collapsed {
+    width: 240px;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 200;
+  }
+
+  /* Collapse toggle is meaningless for a drawer that is always full-width. */
+  .collapse-toggle {
+    display: none;
+  }
+
+  /* The base rule's min-width (160px/280px) would beat a max-width cap
+     here (max-width can't shrink a box below min-width), so open these
+     upward inside the 240px panel instead of as a right-side fly-out -
+     a right fly-out plus either min-width overflows past the viewport
+     edge on any phone narrower than ~520px. */
+  .footer-language :deep(.dropdown-menu),
+  .footer-profile :deep(.dropdown-menu) {
+    left: 0;
+    right: auto;
+    bottom: 100%;
+    top: auto;
+    margin-left: 0;
+    margin-bottom: 8px;
+    min-width: 0;
+    width: 100%;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -7,6 +7,18 @@
     <div class="app-content">
       <div class="app-topbar">
         <div class="app-container">
+          <button
+            class="mobile-nav-toggle"
+            type="button"
+            aria-label="Open navigation"
+            :aria-expanded="mobileOpen"
+            aria-controls="app-sidebar"
+            @click="openMobile"
+          >
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" />
+            </svg>
+          </button>
           <FilterBar />
         </div>
       </div>
@@ -34,9 +46,11 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { api } from './api'
 import { useAuth } from './composables/useAuth'
+import { useSidebar } from './composables/useSidebar'
 import FilterBar from './components/FilterBar.vue'
 import AppSidebar from './components/AppSidebar.vue'
 import ProfileDetailsModal from './components/ProfileDetailsModal.vue'
@@ -52,6 +66,8 @@ export default {
   },
   setup() {
     const { currentUser } = useAuth()
+    const route = useRoute()
+    const { mobileOpen, openMobile, closeMobile } = useSidebar()
     const showProfileDetails = ref(false)
     const showTasks = ref(false)
     const apiTasks = ref([])
@@ -121,7 +137,34 @@ export default {
       }
     }
 
-    onMounted(loadTasks)
+    // Body scroll lock while the drawer is open. Toggled via class (not
+    // inline styles) so App.vue doesn't fight any other consumer of
+    // body's style attribute.
+    watch(mobileOpen, (isOpen) => {
+      document.body.classList.toggle('drawer-open', isOpen)
+    })
+
+    // Tapping a nav link inside the drawer navigates but wouldn't otherwise
+    // close the drawer, leaving it covering the newly-loaded page.
+    watch(() => route.path, () => {
+      closeMobile()
+    })
+
+    const handleKeydown = (event) => {
+      if (!mobileOpen.value) return
+      if (event.key === 'Escape') {
+        closeMobile()
+      }
+    }
+
+    onMounted(() => {
+      loadTasks()
+      window.addEventListener('keydown', handleKeydown)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('keydown', handleKeydown)
+    })
 
     return {
       showProfileDetails,
@@ -129,7 +172,9 @@ export default {
       tasks,
       addTask,
       deleteTask,
-      toggleTask
+      toggleTask,
+      mobileOpen,
+      openMobile
     }
   }
 }
@@ -172,6 +217,38 @@ body {
   z-index: 50;
 }
 
+/* Descendant selector only - main shares .app-container and must not
+   inherit this flex layout, or every page misaligns against its filter bar. */
+.app-topbar .app-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app-topbar .filters-bar {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-nav-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.mobile-nav-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
 .app-container {
   max-width: 1440px;
   margin: 0 auto;
@@ -180,6 +257,11 @@ body {
 
 main {
   padding: 1.5rem 0;
+}
+
+/* Prevents the page behind the drawer from scrolling while it is open. */
+body.drawer-open {
+  overflow: hidden;
 }
 
 .page-header {
@@ -418,6 +500,26 @@ tbody tr:hover {
 :focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .mobile-nav-toggle {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-container {
+    padding: 0 1rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header h2 {
+    font-size: 1.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

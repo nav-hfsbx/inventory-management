@@ -7,9 +7,81 @@
     <div v-if="loading" class="loading">{{ t('common.loading') }}</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
+      <!-- Inventory Shortages -->
+      <div class="card hero-panel">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('dashboard.inventoryShortages.title') }} ({{ backlogItems.length }})</h3>
+        </div>
+        <div v-if="backlogItems.length === 0" class="no-backlog">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="success-icon">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+          <p class="no-backlog-text">{{ t('dashboard.inventoryShortages.noShortages') }}</p>
+        </div>
+        <div v-else class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('dashboard.inventoryShortages.orderId') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.sku') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.itemName') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.quantityNeeded') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.quantityAvailable') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.shortage') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.daysDelayed') }}</th>
+                <th>{{ t('dashboard.inventoryShortages.priority') }}</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="item in backlogItems"
+                :key="item.id"
+              >
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;"><strong>{{ item.order_id }}</strong></td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;"><strong>{{ item.item_sku }}</strong></td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ translateProductName(item.item_name) }}</td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ item.quantity_needed }}</td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ item.quantity_available }}</td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">
+                  <span class="badge danger">
+                    {{ Math.abs(item.quantity_needed - item.quantity_available) }} {{ t('dashboard.inventoryShortages.unitsShort') }}
+                  </span>
+                </td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">
+                  <span :style="{ color: item.days_delayed > 7 ? '#ef4444' : '#f59e0b', fontWeight: 600 }">
+                    {{ item.days_delayed }} {{ t('dashboard.inventoryShortages.days') }}
+                  </span>
+                </td>
+                <td @click="showBacklogDetail(item)" style="cursor: pointer;">
+                  <span :class="['badge', item.priority]">
+                    {{ translatePriority(item.priority) }}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    v-if="!item.purchase_order_id"
+                    @click.stop="openPOModal(item)"
+                    class="po-button create"
+                  >
+                    Create PO
+                  </button>
+                  <button
+                    v-else
+                    @click.stop="viewPO(item)"
+                    class="po-button view"
+                  >
+                    View PO
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Key Performance Indicators -->
       <div class="kpi-section">
-        <h3 class="section-title">{{ t('dashboard.kpi.title') }}</h3>
         <div class="kpi-grid">
           <div class="kpi-card">
             <div class="kpi-header">
@@ -17,9 +89,6 @@
             </div>
             <div class="kpi-value">4.2</div>
             <div class="kpi-goal">{{ t('dashboard.kpi.goal') }}: 4.5 (-6.67%)</div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress" style="width: 93.33%"></div>
-            </div>
           </div>
 
           <div class="kpi-card">
@@ -28,9 +97,6 @@
             </div>
             <div class="kpi-value">{{ ordersData.fulfilled }}</div>
             <div class="kpi-goal">{{ t('dashboard.kpi.goal') }}: {{ ordersData.goal }} ({{ calculatePercentage(ordersData.fulfilled, ordersData.goal) }}%)</div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress" :style="{ width: calculatePercentage(ordersData.fulfilled, ordersData.goal) + '%' }"></div>
-            </div>
           </div>
 
           <div class="kpi-card">
@@ -39,9 +105,6 @@
             </div>
             <div class="kpi-value">{{ fillRate }}%</div>
             <div class="kpi-goal">{{ t('dashboard.kpi.goal') }}: 95% ({{ fillRate - 95 > 0 ? '+' : '' }}{{ (fillRate - 95).toFixed(2) }}%)</div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress success" :style="{ width: (fillRate / 95 * 100) + '%' }"></div>
-            </div>
           </div>
 
           <div class="kpi-card">
@@ -50,9 +113,6 @@
             </div>
             <div class="kpi-value">{{ formatMoney(summary.total_orders_value, 0) }}</div>
             <div class="kpi-goal">{{ t('dashboard.kpi.goal') }}: {{ formatMoney(revenueGoal, 0) }} ({{ summary.total_orders_value > revenueGoal ? '+' : '' }}{{ ((summary.total_orders_value / revenueGoal - 1) * 100).toFixed(1) }}%)</div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress" :style="{ width: Math.min((summary.total_orders_value / revenueGoal * 100), 100) + '%' }"></div>
-            </div>
           </div>
 
           <div class="kpi-card">
@@ -61,16 +121,8 @@
             </div>
             <div class="kpi-value">2.8</div>
             <div class="kpi-goal">{{ t('dashboard.kpi.goal') }}: 3.0 (-6.67%)</div>
-            <div class="kpi-progress-bar">
-              <div class="kpi-progress success" style="width: 93.33%"></div>
-            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Summary Section -->
-      <div class="summary-section">
-        <h3 class="section-title">{{ t('dashboard.summary.title') }}</h3>
       </div>
 
       <!-- Charts Grid -->
@@ -154,79 +206,6 @@
               </div>
             </div>
             <div v-else class="no-data">{{ t('dashboard.inventoryShortages.noData') }}</div>
-          </div>
-        </div>
-
-        <!-- Inventory Shortages -->
-        <div class="card chart-card full-width">
-          <div class="card-header">
-            <h3 class="card-title">{{ t('dashboard.inventoryShortages.title') }} ({{ backlogItems.length }})</h3>
-          </div>
-          <div v-if="backlogItems.length === 0" class="no-backlog">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="success-icon">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <p class="no-backlog-text">{{ t('dashboard.inventoryShortages.noShortages') }}</p>
-          </div>
-          <div v-else class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>{{ t('dashboard.inventoryShortages.orderId') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.sku') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.itemName') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.quantityNeeded') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.quantityAvailable') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.shortage') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.daysDelayed') }}</th>
-                  <th>{{ t('dashboard.inventoryShortages.priority') }}</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="item in backlogItems"
-                  :key="item.id"
-                >
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;"><strong>{{ item.order_id }}</strong></td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;"><strong>{{ item.item_sku }}</strong></td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ translateProductName(item.item_name) }}</td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ item.quantity_needed }}</td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">{{ item.quantity_available }}</td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">
-                    <span class="badge danger">
-                      {{ Math.abs(item.quantity_needed - item.quantity_available) }} {{ t('dashboard.inventoryShortages.unitsShort') }}
-                    </span>
-                  </td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">
-                    <span :style="{ color: item.days_delayed > 7 ? '#ef4444' : '#f59e0b', fontWeight: 600 }">
-                      {{ item.days_delayed }} {{ t('dashboard.inventoryShortages.days') }}
-                    </span>
-                  </td>
-                  <td @click="showBacklogDetail(item)" style="cursor: pointer;">
-                    <span :class="['badge', item.priority]">
-                      {{ translatePriority(item.priority) }}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      v-if="!item.purchase_order_id"
-                      @click.stop="openPOModal(item)"
-                      class="po-button create"
-                    >
-                      Create PO
-                    </button>
-                    <button
-                      v-else
-                      @click.stop="viewPO(item)"
-                      class="po-button view"
-                    >
-                      View PO
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
           </div>
         </div>
 
@@ -738,30 +717,26 @@ export default {
   color: #64748b;
 }
 
+.hero-panel {
+  border-left: 3px solid #f59e0b;
+  margin-bottom: 1.5rem;
+}
+
 .kpi-section {
   margin-bottom: 1.5rem;
 }
 
-.section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #475569;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 1rem;
-}
-
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
 }
 
 .kpi-card {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .kpi-header {
@@ -769,49 +744,29 @@ export default {
 }
 
 .kpi-label {
-  font-size: 0.813rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 500;
   color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
 }
 
 .kpi-value {
-  font-size: 2rem;
-  font-weight: 700;
+  font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: #0f172a;
   margin-bottom: 0.5rem;
-  letter-spacing: -0.025em;
 }
 
 .kpi-goal {
-  font-size: 0.813rem;
+  font-size: 0.75rem;
   color: #64748b;
   margin-bottom: 0.75rem;
 }
 
-.kpi-progress-bar {
-  width: 100%;
-  height: 6px;
-  background: #f1f5f9;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.kpi-progress {
-  height: 100%;
-  background: #3b82f6;
-  border-radius: 3px;
-  transition: width 0.6s ease;
-}
-
-.kpi-progress.success {
-  background: #10b981;
-}
-
 .charts-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 1.25rem;
   margin-bottom: 1.5rem;
 }
@@ -824,32 +779,6 @@ export default {
   padding: 1rem;
 }
 
-.donut-chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3rem;
-}
-
-.donut-svg {
-  width: 200px;
-  height: 200px;
-}
-
-.donut-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  font-size: 0.875rem;
-  color: #475569;
-}
-
 .legend-dot {
   width: 10px;
   height: 10px;
@@ -859,7 +788,7 @@ export default {
 /* Order Health Dashboard Styles */
 .order-health-container {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
   align-items: center;
   padding: 1rem;
@@ -876,8 +805,12 @@ export default {
 }
 
 .donut-svg-compact {
-  width: 200px;
-  height: 200px;
+  /* Sidebar narrowed the content column; fixed px sizing prevented the
+     donut from shrinking. viewBox="0 0 200 200" already scales correctly,
+     so switch to fluid sizing capped at the original 200px. */
+  width: 100%;
+  max-width: 200px;
+  height: auto;
 }
 
 .donut-center-label {
@@ -896,7 +829,7 @@ export default {
 
 .donut-legend-compact {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 0.625rem 1.25rem;
 }
 
@@ -966,12 +899,17 @@ export default {
 }
 
 .h-bar-label {
-  width: 120px;
-  min-width: 120px;
+  /* Narrower content column: let the label shrink instead of holding a
+     hard 120px floor, which was starving the bar track (and its white
+     value text) of space. Ellipsize rather than wrap/overflow. */
+  flex: 0 1 120px;
+  min-width: 72px;
   font-size: 0.875rem;
   font-weight: 600;
   color: #475569;
-  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .h-bar-container {
@@ -1109,130 +1047,6 @@ export default {
 
 .clickable-row:hover {
   background: #eff6ff !important;
-}
-
-/* Tasks Card Styles */
-.tasks-card {
-  margin-bottom: 2rem;
-}
-
-.tasks-content {
-  padding: 1.5rem;
-}
-
-.task-input-container {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.task-input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  transition: border-color 0.2s ease;
-}
-
-.task-input:focus {
-  outline: none;
-  border-color: #667eea;
-}
-
-.task-add-btn {
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.task-add-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.task-add-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.no-tasks {
-  text-align: center;
-  padding: 2rem;
-  color: #64748b;
-  font-style: italic;
-}
-
-.tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-}
-
-.task-item:hover {
-  border-color: #e2e8f0;
-  background: white;
-}
-
-.task-item.completed {
-  opacity: 0.6;
-}
-
-.task-item.completed .task-text {
-  text-decoration: line-through;
-  color: #94a3b8;
-}
-
-.task-checkbox {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
-  accent-color: #667eea;
-}
-
-.task-text {
-  flex: 1;
-  cursor: pointer;
-  user-select: none;
-  color: #0f172a;
-  font-size: 0.95rem;
-}
-
-.task-delete-btn {
-  width: 28px;
-  height: 28px;
-  background: #ef4444;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.task-delete-btn:hover {
-  background: #dc2626;
-  transform: scale(1.1);
 }
 
 .po-button {

@@ -689,7 +689,7 @@ export default {
 
 .two-column-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
   gap: 1.75rem;
 }
 
@@ -766,6 +766,7 @@ export default {
 
 .transactions-table-container {
   overflow-y: auto;
+  overflow-x: auto;
   max-height: 400px;
 }
 
