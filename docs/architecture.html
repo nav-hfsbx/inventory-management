@@ -669,8 +669,8 @@ generate_data.py  <span class="note">— produced the sample data</span></div>
       <table class="api">
         <tr><th>Route</th><th>Filters</th><th>Notes</th></tr>
         <tr><td class="path"><span class="method">GET</span>/api/dashboard/summary</td><td class="filters">warehouse, category, status, month</td><td class="desc">Aggregates inventory value, low-stock count, pending orders. Excludes <code>order_type: "Restocking"</code> orders — those are procurement spend, not customer revenue.</td></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/reports/quarterly</td><td class="filters">none</td><td class="desc">Groups all orders into Q1–Q4-2025, computes fulfillment rate. Excludes restocking orders.</td></tr>
-        <tr><td class="path"><span class="method">GET</span>/api/reports/monthly-trends</td><td class="filters">none</td><td class="desc">Order count / revenue / delivered count per calendar month. Excludes restocking orders.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/reports/quarterly</td><td class="filters">warehouse, category, status, month</td><td class="desc">Groups matching orders into Q1–Q4-2025, computes fulfillment rate. Honours the global FilterBar params, like the dashboard summary. Excludes restocking orders.</td></tr>
+        <tr><td class="path"><span class="method">GET</span>/api/reports/monthly-trends</td><td class="filters">warehouse, category, status, month</td><td class="desc">Order count / revenue / delivered count per calendar month. Honours the global FilterBar params. Excludes restocking orders.</td></tr>
       </table>
     </div>
 

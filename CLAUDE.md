@@ -76,7 +76,7 @@ uv run pytest ../tests/backend/test_inventory.py::TestInventoryEndpoints::test_g
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
 - `GET /api/spending/*` - Summary, monthly, categories, transactions
-- `GET /api/reports/quarterly`, `/api/reports/monthly-trends` - Reports view data
+- `GET /api/reports/quarterly`, `/api/reports/monthly-trends` - Reports view data. Filters: warehouse, category, status, month
 
 ## Common Issues
 1. Use unique keys in v-for (not `index`) - use `sku`, `month`, etc.

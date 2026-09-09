@@ -7,6 +7,7 @@ export default {
     finance: '財務',
     demandForecast: '需要予測',
     restocking: '再発注',
+    reports: 'レポート',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -219,6 +220,44 @@ export default {
       quantity: '数量',
       lineTotal: '小計',
       remove: '削除'
+    }
+  },
+
+  // Reports
+  reports: {
+    title: '実績レポート',
+    description: '四半期の実績指標と月次推移を表示',
+    quarterlyPerformance: '四半期実績',
+    monthlyRevenueTrend: '月次売上推移',
+    monthOverMonth: '前月比分析',
+    noData: '現在のフィルターに一致するレポートデータがありません。',
+    loadError: 'レポートの読み込みに失敗しました：{message}',
+    notAvailable: '該当なし',
+    quarterlyTable: {
+      quarter: '四半期',
+      totalOrders: '注文総数',
+      totalRevenue: '売上高',
+      avgOrderValue: '平均注文額',
+      fulfillmentRate: '履行率'
+    },
+    monthlyTable: {
+      month: '月',
+      orders: '注文数',
+      revenue: '売上高',
+      change: '増減',
+      growthRate: '成長率'
+    },
+    summary: {
+      totalRevenue: '売上高（年初来）',
+      totalRevenueFiltered: '売上高（絞り込み）',
+      avgMonthlyRevenue: '月平均売上高',
+      totalOrders: '注文総数（年初来）',
+      totalOrdersFiltered: '注文総数（絞り込み）',
+      bestQuarter: '最高実績の四半期'
+    },
+    months: {
+      1: '1月', 2: '2月', 3: '3月', 4: '4月', 5: '5月', 6: '6月',
+      7: '7月', 8: '8月', 9: '9月', 10: '10月', 11: '11月', 12: '12月'
     }
   },
 
