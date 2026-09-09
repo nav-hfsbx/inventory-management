@@ -8,6 +8,8 @@ export default {
     demandForecast: '需要予測',
     restocking: '再発注',
     reports: 'レポート',
+    operations: 'オペレーション',
+    analytics: '分析',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
