@@ -6,6 +6,7 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    restocking: 'Restocking',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },
@@ -126,6 +127,12 @@ export default {
       status: 'Status',
       expectedDelivery: 'Expected Delivery',
       actualDelivery: 'Actual Delivery'
+    },
+    submittedOrders: {
+      title: 'Submitted Orders (Restocking)',
+      empty: 'No restocking orders have been submitted yet.',
+      leadTime: 'Lead Time',
+      days: '{count} days'
     }
   },
 
@@ -188,6 +195,33 @@ export default {
     }
   },
 
+  // Restocking
+  restocking: {
+    title: 'Restocking',
+    description: 'Generate budget-driven restocking recommendations and place orders',
+    budgetLabel: 'Budget',
+    recommendedItems: 'Recommended Items',
+    noRecommendations: 'No items can be recommended for this budget — try increasing it.',
+    placeOrder: 'Place Order',
+    orderPlaced: 'Order {orderNumber} placed successfully. Lead time: {days} days.',
+    totalEstimatedCost: 'Total Estimated Cost',
+    remainingBudget: 'Remaining Budget',
+    refreshNote: 'Adjusting filters or budget will refresh recommendations.',
+    table: {
+      sku: 'SKU',
+      itemName: 'Item Name',
+      warehouse: 'Warehouse',
+      category: 'Category',
+      currentDemand: 'Current Demand',
+      forecastedDemand: 'Forecasted Demand',
+      recommendedQty: 'Recommended Qty',
+      unitCost: 'Unit Cost',
+      quantity: 'Quantity',
+      lineTotal: 'Line Total',
+      remove: 'Remove'
+    }
+  },
+
   // Filters
   filters: {
     timePeriod: 'Time Period',
@@ -206,7 +240,8 @@ export default {
     backordered: 'Backordered',
     inStock: 'In Stock',
     lowStock: 'Low Stock',
-    adequate: 'Adequate'
+    adequate: 'Adequate',
+    submitted: 'Submitted'
   },
 
   // Trends

@@ -1,6 +1,10 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 Factory Inventory Management System Demo with GitHub integration - Full-stack application with Vue 3 frontend, Python FastAPI backend, and in-memory mock data (no database).
+
+`client/CLAUDE.md` and `server/CLAUDE.md` provide additional guidance auto-loaded when working in those subtrees.
 
 > ⚠️ **This repository and any fork you create are PUBLIC.** Do not commit credentials, internal hostnames, or private registry URLs. `client/.npmrc` pins the public npm registry and `client/package-lock.json` is gitignored to prevent locally-configured registries from leaking into commits — leave both in place.
 
@@ -33,8 +37,11 @@ Use the Task tool with these specialized subagents for appropriate tasks:
 ## Quick Start
 
 ```bash
+# One-command startup (macOS/Linux): ./scripts/start.sh — starts both servers, ./scripts/stop.sh stops them
+
 # Backend
 cd server
+uv sync
 uv run python main.py
 
 # Frontend
@@ -42,11 +49,26 @@ cd client
 npm install && npm run dev
 ```
 
+Frontend production build: `cd client && npm run build` (output `client/dist/`), preview with `npm run preview`.
+
+## Testing
+
+Backend tests must be run from `server/` (not `tests/` — there's no `pyproject.toml` there, so `uv run pytest` fails). This contradicts `README.md`, `tests/README.md`, and `server/CLAUDE.md`, which all document a `cd tests` form:
+
+```bash
+cd server
+uv run pytest ../tests/backend -v                                    # all tests
+uv run pytest ../tests/backend/test_inventory.py -v                  # one file
+uv run pytest ../tests/backend/test_inventory.py::TestInventoryEndpoints::test_get_all_inventory -v  # one test
+```
+
 ## Key Patterns
 
 **Filter System**: 4 filters (Time Period, Warehouse, Category, Order Status) apply to all data via query params
 **Data Flow**: Vue filters → `client/src/api.js` → FastAPI → In-memory filtering → Pydantic validation → Computed properties
 **Reactivity**: Raw data in refs (`allOrders`, `inventoryItems`), derived data in computed properties
+**Filter state**: `useFilters()` composable holds module-level singleton refs — shared across every view, not per-component instance. Same pattern in `useAuth()` (mock-only, no real backend auth) and `useI18n()`.
+**i18n**: `useI18n()` translates via `client/src/locales/{en,ja}.js`; locale drives currency automatically (`ja` → JPY, else USD) and falls back to English for missing keys.
 
 ## API Endpoints
 - `GET /api/inventory` - Filters: warehouse, category
@@ -54,6 +76,7 @@ npm install && npm run dev
 - `GET /api/dashboard/summary` - All filters
 - `GET /api/demand`, `/api/backlog` - No filters
 - `GET /api/spending/*` - Summary, monthly, categories, transactions
+- `GET /api/reports/quarterly`, `/api/reports/monthly-trends` - Reports view data
 
 ## Common Issues
 1. Use unique keys in v-for (not `index`) - use `sku`, `month`, etc.

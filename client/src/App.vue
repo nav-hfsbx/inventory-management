@@ -22,6 +22,9 @@
           <router-link to="/demand" :class="{ active: $route.path === '/demand' }">
             {{ t('nav.demandForecast') }}
           </router-link>
+          <router-link to="/restocking" :class="{ active: $route.path === '/restocking' }">
+            {{ t('nav.restocking') }}
+          </router-link>
           <router-link to="/reports" :class="{ active: $route.path === '/reports' }">
             Reports
           </router-link>
@@ -482,5 +485,26 @@ tbody tr:hover {
   border-radius: 8px;
   margin: 1rem 0;
   font-size: 0.938rem;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

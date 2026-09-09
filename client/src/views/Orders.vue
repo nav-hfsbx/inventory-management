@@ -74,6 +74,45 @@
           </table>
         </div>
       </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('orders.submittedOrders.title') }} ({{ restockingOrders.length }})</h3>
+        </div>
+        <div v-if="restockingOrders.length === 0" class="empty-state">
+          {{ t('orders.submittedOrders.empty') }}
+        </div>
+        <div v-else class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('orders.table.orderNumber') }}</th>
+                <th>{{ t('orders.table.items') }}</th>
+                <th>{{ t('orders.submittedOrders.leadTime') }}</th>
+                <th>{{ t('orders.table.orderDate') }}</th>
+                <th>{{ t('orders.table.expectedDelivery') }}</th>
+                <th>{{ t('orders.table.status') }}</th>
+                <th>{{ t('orders.table.totalValue') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in restockingOrders" :key="order.id">
+                <td><strong>{{ order.order_number }}</strong></td>
+                <td>{{ t('orders.itemsCount', { count: order.items.length }) }}</td>
+                <td>{{ t('orders.submittedOrders.days', { count: order.lead_time_days }) }}</td>
+                <td>{{ formatDate(order.order_date) }}</td>
+                <td>{{ formatDate(order.expected_delivery) }}</td>
+                <td>
+                  <span :class="['badge', getOrderStatusClass(order.status)]">
+                    {{ t(`status.${order.status.toLowerCase()}`) }}
+                  </span>
+                </td>
+                <td><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -95,6 +134,7 @@ export default {
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockingOrders = ref([])
 
     // Use shared filters
     const {
@@ -108,14 +148,27 @@ export default {
     const loadOrders = async () => {
       try {
         loading.value = true
+        error.value = null
         const filters = getCurrentFilters()
-        const fetchedOrders = await api.getOrders(filters)
+
+        // Restocking orders are unfiltered by design - they always show everything placed
+        const [fetchedOrders, fetchedRestocking] = await Promise.all([
+          api.getOrders(filters),
+          api.getRestockingOrders()
+        ])
 
         // Sort orders by order_date (earliest first)
         orders.value = fetchedOrders.sort((a, b) => {
           const dateA = new Date(a.order_date)
           const dateB = new Date(b.order_date)
           return dateA - dateB
+        })
+
+        // Sort restocking orders newest-first
+        restockingOrders.value = fetchedRestocking.sort((a, b) => {
+          const dateA = new Date(a.order_date)
+          const dateB = new Date(b.order_date)
+          return dateB - dateA
         })
       } catch (err) {
         error.value = 'Failed to load orders: ' + err.message
@@ -138,7 +191,8 @@ export default {
         'Delivered': 'success',
         'Shipped': 'info',
         'Processing': 'warning',
-        'Backordered': 'danger'
+        'Backordered': 'danger',
+        'Submitted': 'info'
       }
       return statusMap[status] || 'info'
     }
@@ -160,6 +214,7 @@ export default {
       loading,
       error,
       orders,
+      restockingOrders,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
@@ -172,6 +227,13 @@ export default {
 </script>
 
 <style scoped>
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.938rem;
+}
+
 /* Fixed table layout to prevent column shifting */
 .orders-table {
   table-layout: fixed;

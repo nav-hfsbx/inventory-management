@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Factory Inventory API Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.css">
+<style>
+  :root {
+    --bg: #f6f7fa;
+    --surface: #ffffff;
+    --surface-sunken: #edf0f4;
+    --border: #dde3ea;
+    --ink: #101725;
+    --ink-muted: #5b6576;
+    --ink-faint: #8992a3;
+    --accent: #2f6fed;
+    --accent-ink: #1d4ed8;
+    --accent-soft: #e3ecfd;
+    --shadow: 0 1px 2px rgba(16, 23, 37, 0.04), 0 8px 24px -12px rgba(16, 23, 37, 0.10);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Barlow', system-ui, sans-serif;
+  }
+  h1, h2, h3 {
+    font-family: 'Barlow Semi Condensed', 'Barlow', system-ui, sans-serif;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+    color: var(--ink);
+  }
+  code {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    background: var(--surface-sunken);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.1em 0.4em;
+    font-size: 0.86em;
+  }
+
+  header.hero {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 56px 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+  }
+  header.hero h1 { font-size: clamp(2rem, 4vw, 2.6rem); letter-spacing: -0.01em; }
+  header.hero .lede { max-width: 68ch; color: var(--ink-muted); font-size: 1.05rem; }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 999px; font-size: 13px; font-weight: 500; color: var(--ink-muted);
+    box-shadow: var(--shadow);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .chip .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+
+  #swagger-ui { max-width: 1100px; margin: 0 auto 48px; }
+
+  /* ---- Light re-skin of Swagger UI to match the project's palette/type ---- */
+  .swagger-ui { font-family: 'Barlow', system-ui, sans-serif; }
+  .swagger-ui .topbar { display: none; }
+  .swagger-ui .info { margin: 0 0 20px; }
+  .swagger-ui .info hgroup.main { display: none; } /* replaced by our own header */
+  .swagger-ui .scheme-container { background: var(--surface); box-shadow: var(--shadow); border: 1px solid var(--border); border-radius: 10px; margin: 0 0 20px; }
+  .swagger-ui .opblock-tag { font-family: 'Barlow Semi Condensed', sans-serif; border-bottom: 1px solid var(--border); }
+  .swagger-ui .opblock { border-radius: 10px; box-shadow: var(--shadow); }
+  .swagger-ui .opblock .opblock-summary-path, .swagger-ui .opblock .opblock-summary-path__deprecated {
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .swagger-ui .btn.authorize, .swagger-ui .btn.execute { background: var(--accent); border-color: var(--accent); }
+  .swagger-ui select, .swagger-ui input[type=text] { font-family: 'JetBrains Mono', monospace; }
+  .swagger-ui table tbody tr td { font-family: 'Barlow', sans-serif; }
+
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 20px 28px 64px;
+    border-top: 1px solid var(--border);
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+  footer code { font-size: 0.95em; }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <span class="eyebrow">API Reference — static snapshot</span>
+    <h1>Factory Inventory API</h1>
+    <p class="lede">Every route exposed by <code>server/main.py</code>, rendered from a saved copy of its OpenAPI schema. "Try it out" works only while the FastAPI process is running on port 8001 — browsing the shapes below does not require it.</p>
+    <div class="chip-row">
+      <span class="chip"><span class="dot"></span>FastAPI 0.110+</span>
+      <span class="chip"><span class="dot"></span>base http://localhost:8001</span>
+      <span class="chip"><span class="dot"></span>14 routes</span>
+      <span class="chip"><span class="dot"></span>openapi.json</span>
+    </div>
+  </header>
+
+  <div id="swagger-ui"></div>
+
+  <footer>
+    Snapshot of <code>server/main.py</code>'s schema, saved to <code>docs/openapi.json</code>. Regenerate it after changing routes or Pydantic models, with the backend running: <code>curl http://localhost:8001/openapi.json -o docs/openapi.json</code>
+  </footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.js"></script>
+
+<script>
+  // Spec is embedded (not fetched) so this page also works opened directly via file://,
+  // where browsers block fetch()/XHR to sibling files. Regenerate alongside docs/openapi.json.
+  window.__OPENAPI_SPEC__ = {"openapi":"3.1.0","info":{"title":"Factory Inventory Management System","version":"0.1.0"},"paths":{"/":{"get":{"summary":"Root","operationId":"root__get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/inventory":{"get":{"summary":"Get Inventory","description":"Get all inventory items with optional filtering","operationId":"get_inventory_api_inventory_get","parameters":[{"name":"warehouse","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Warehouse"}},{"name":"category","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Category"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/InventoryItem"},"title":"Response Get Inventory Api Inventory Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/inventory/{item_id}":{"get":{"summary":"Get Inventory Item","description":"Get a specific inventory item","operationId":"get_inventory_item_api_inventory__item_id__get","parameters":[{"name":"item_id","in":"path","required":true,"schema":{"type":"string","title":"Item Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/InventoryItem"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/orders":{"get":{"summary":"Get Orders","description":"Get all orders with optional filtering","operationId":"get_orders_api_orders_get","parameters":[{"name":"warehouse","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Warehouse"}},{"name":"category","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Category"}},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"}},{"name":"month","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Month"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"type":"array","items":{"$ref":"#/components/schemas/Order"},"title":"Response Get Orders Api Orders Get"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/orders/{order_id}":{"get":{"summary":"Get Order","description":"Get a specific order","operationId":"get_order_api_orders__order_id__get","parameters":[{"name":"order_id","in":"path","required":true,"schema":{"type":"string","title":"Order Id"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"$ref":"#/components/schemas/Order"}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/demand":{"get":{"summary":"Get Demand Forecasts","description":"Get demand forecasts","operationId":"get_demand_forecasts_api_demand_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/DemandForecast"},"type":"array","title":"Response Get Demand Forecasts Api Demand Get"}}}}}}},"/api/backlog":{"get":{"summary":"Get Backlog","description":"Get backlog items with purchase order status","operationId":"get_backlog_api_backlog_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{"items":{"$ref":"#/components/schemas/BacklogItem"},"type":"array","title":"Response Get Backlog Api Backlog Get"}}}}}}},"/api/dashboard/summary":{"get":{"summary":"Get Dashboard Summary","description":"Get summary statistics for dashboard with optional filtering","operationId":"get_dashboard_summary_api_dashboard_summary_get","parameters":[{"name":"warehouse","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Warehouse"}},{"name":"category","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Category"}},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Status"}},{"name":"month","in":"query","required":false,"schema":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Month"}}],"responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}},"422":{"description":"Validation Error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/HTTPValidationError"}}}}}}},"/api/spending/summary":{"get":{"summary":"Get Spending Summary","description":"Get spending summary statistics","operationId":"get_spending_summary_api_spending_summary_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/spending/monthly":{"get":{"summary":"Get Monthly Spending","description":"Get monthly spending breakdown","operationId":"get_monthly_spending_api_spending_monthly_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/spending/categories":{"get":{"summary":"Get Category Spending","description":"Get spending by category","operationId":"get_category_spending_api_spending_categories_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/spending/transactions":{"get":{"summary":"Get Recent Transactions","description":"Get recent transactions","operationId":"get_recent_transactions_api_spending_transactions_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/reports/quarterly":{"get":{"summary":"Get Quarterly Reports","description":"Get quarterly performance reports","operationId":"get_quarterly_reports_api_reports_quarterly_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}},"/api/reports/monthly-trends":{"get":{"summary":"Get Monthly Trends","description":"Get month-over-month trends","operationId":"get_monthly_trends_api_reports_monthly_trends_get","responses":{"200":{"description":"Successful Response","content":{"application/json":{"schema":{}}}}}}}},"components":{"schemas":{"BacklogItem":{"properties":{"id":{"type":"string","title":"Id"},"order_id":{"type":"string","title":"Order Id"},"item_sku":{"type":"string","title":"Item Sku"},"item_name":{"type":"string","title":"Item Name"},"quantity_needed":{"type":"integer","title":"Quantity Needed"},"quantity_available":{"type":"integer","title":"Quantity Available"},"days_delayed":{"type":"integer","title":"Days Delayed"},"priority":{"type":"string","title":"Priority"},"has_purchase_order":{"anyOf":[{"type":"boolean"},{"type":"null"}],"title":"Has Purchase Order","default":false}},"type":"object","required":["id","order_id","item_sku","item_name","quantity_needed","quantity_available","days_delayed","priority"],"title":"BacklogItem"},"DemandForecast":{"properties":{"id":{"type":"string","title":"Id"},"item_sku":{"type":"string","title":"Item Sku"},"item_name":{"type":"string","title":"Item Name"},"current_demand":{"type":"integer","title":"Current Demand"},"forecasted_demand":{"type":"integer","title":"Forecasted Demand"},"trend":{"type":"string","title":"Trend"},"period":{"type":"string","title":"Period"}},"type":"object","required":["id","item_sku","item_name","current_demand","forecasted_demand","trend","period"],"title":"DemandForecast"},"HTTPValidationError":{"properties":{"detail":{"items":{"$ref":"#/components/schemas/ValidationError"},"type":"array","title":"Detail"}},"type":"object","title":"HTTPValidationError"},"InventoryItem":{"properties":{"id":{"type":"string","title":"Id"},"sku":{"type":"string","title":"Sku"},"name":{"type":"string","title":"Name"},"category":{"type":"string","title":"Category"},"warehouse":{"type":"string","title":"Warehouse"},"quantity_on_hand":{"type":"integer","title":"Quantity On Hand"},"reorder_point":{"type":"integer","title":"Reorder Point"},"unit_cost":{"type":"number","title":"Unit Cost"},"location":{"type":"string","title":"Location"},"last_updated":{"type":"string","title":"Last Updated"}},"type":"object","required":["id","sku","name","category","warehouse","quantity_on_hand","reorder_point","unit_cost","location","last_updated"],"title":"InventoryItem"},"Order":{"properties":{"id":{"type":"string","title":"Id"},"order_number":{"type":"string","title":"Order Number"},"customer":{"type":"string","title":"Customer"},"items":{"items":{"additionalProperties":true,"type":"object"},"type":"array","title":"Items"},"status":{"type":"string","title":"Status"},"order_date":{"type":"string","title":"Order Date"},"expected_delivery":{"type":"string","title":"Expected Delivery"},"total_value":{"type":"number","title":"Total Value"},"actual_delivery":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Actual Delivery"},"warehouse":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Warehouse"},"category":{"anyOf":[{"type":"string"},{"type":"null"}],"title":"Category"}},"type":"object","required":["id","order_number","customer","items","status","order_date","expected_delivery","total_value"],"title":"Order"},"ValidationError":{"properties":{"loc":{"items":{"anyOf":[{"type":"string"},{"type":"integer"}]},"type":"array","title":"Location"},"msg":{"type":"string","title":"Message"},"type":{"type":"string","title":"Error Type"},"input":{"title":"Input"},"ctx":{"type":"object","title":"Context"}},"type":"object","required":["loc","msg","type"],"title":"ValidationError"}}}};
+
+  window.onload = function() {
+    window.ui = SwaggerUIBundle({
+      spec: window.__OPENAPI_SPEC__,
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+      layout: 'BaseLayout',
+      deepLinking: true,
+      docExpansion: 'list',
+      defaultModelsExpandDepth: 1
+    });
+  };
+</script>
+</body>
+</html>

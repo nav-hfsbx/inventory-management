@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -13,6 +14,21 @@ QUARTER_MAP = {
     'Q3-2025': ['2025-07', '2025-08', '2025-09'],
     'Q4-2025': ['2025-10', '2025-11', '2025-12']
 }
+
+# Restocking orders are dated against a fixed "today" rather than the real
+# clock: every other date in this demo (orders.json, FilterBar's month
+# dropdown) lives inside a fictional Sept 2025 present, so datetime.now()
+# would create an order dated 2026, break ORD-2025-xxxx numbering, and
+# silently open a new bucket in /api/reports/monthly-trends.
+SIMULATED_TODAY = datetime(2025, 9, 30, 12, 0, 0)
+RESTOCKING_LEAD_TIME_DAYS = 10
+
+
+def compute_lead_time_days(order: dict) -> int:
+    """Derive delivery lead time from the same two dates every Order already has."""
+    order_date = datetime.fromisoformat(order["order_date"])
+    expected_delivery = datetime.fromisoformat(order["expected_delivery"])
+    return (expected_delivery - order_date).days
 
 def filter_by_month(items: list, month: Optional[str]) -> list:
     """Filter items by month/quarter based on order_date field"""
@@ -80,6 +96,7 @@ class Order(BaseModel):
     actual_delivery: Optional[str] = None
     warehouse: Optional[str] = None
     category: Optional[str] = None
+    order_type: Optional[str] = None
 
 class DemandForecast(BaseModel):
     id: str
@@ -89,6 +106,9 @@ class DemandForecast(BaseModel):
     forecasted_demand: int
     trend: str
     period: str
+    unit_cost: float
+    warehouse: str
+    category: str
 
 class BacklogItem(BaseModel):
     id: str
@@ -120,6 +140,39 @@ class CreatePurchaseOrderRequest(BaseModel):
     expected_delivery_date: str
     notes: Optional[str] = None
 
+class RestockingRecommendationItem(BaseModel):
+    item_sku: str
+    item_name: str
+    warehouse: str
+    category: str
+    current_demand: int
+    forecasted_demand: int
+    recommended_quantity: int  # full forecast gap (need), independent of budget
+    quantity: int  # quantity the greedy algorithm actually funded
+    unit_cost: float
+    line_total: float
+
+class RestockingRecommendationResponse(BaseModel):
+    budget: float
+    total_estimated_cost: float
+    remaining_budget: float
+    items: List[RestockingRecommendationItem]
+
+class RestockingOrderLineItem(BaseModel):
+    item_sku: str
+    item_name: str
+    quantity: int
+    unit_cost: float
+    warehouse: Optional[str] = None
+    category: Optional[str] = None
+
+class RestockingOrderRequest(BaseModel):
+    budget: float
+    items: List[RestockingOrderLineItem]
+
+class RestockingOrderOut(Order):
+    lead_time_days: int
+
 # API endpoints
 @app.get("/")
 def root():
@@ -149,7 +202,11 @@ def get_orders(
     month: Optional[str] = None
 ):
     """Get all orders with optional filtering"""
-    filtered_orders = apply_filters(orders, warehouse, category, status)
+    # Restocking orders have their own section (Submitted Orders) on the
+    # frontend and their own endpoint below — exclude them here so they
+    # aren't shown twice.
+    customer_orders = [o for o in orders if o.get("order_type") != "Restocking"]
+    filtered_orders = apply_filters(customer_orders, warehouse, category, status)
     filtered_orders = filter_by_month(filtered_orders, month)
     return filtered_orders
 
@@ -179,6 +236,122 @@ def get_backlog():
         result.append(item_dict)
     return result
 
+# Restocking endpoints
+
+@app.get("/api/restocking/recommendations", response_model=RestockingRecommendationResponse)
+def get_restocking_recommendations(
+    budget: Optional[float] = None,
+    warehouse: Optional[str] = None,
+    category: Optional[str] = None
+):
+    """Greedy-by-urgency restocking recommendations within a budget."""
+    if budget is None or budget <= 0:
+        raise HTTPException(status_code=400, detail="Budget must be a positive number")
+
+    pool = apply_filters(demand_forecasts, warehouse=warehouse, category=category)
+
+    candidates = []
+    for forecast in pool:
+        gap = max(forecast["forecasted_demand"] - forecast["current_demand"], 0)
+        if gap > 0:
+            candidates.append({**forecast, "recommended_quantity": gap})
+
+    # Urgency = larger forecast gap first; tie-break by id for deterministic ordering
+    candidates.sort(key=lambda c: (-c["recommended_quantity"], int(c["id"])))
+
+    remaining = budget
+    items = []
+    for candidate in candidates:
+        unit_cost = candidate["unit_cost"]
+        affordable = int(remaining // unit_cost)
+        quantity = min(candidate["recommended_quantity"], affordable)
+        if quantity <= 0:
+            continue
+        line_total = round(quantity * unit_cost, 2)
+        remaining -= line_total
+        items.append(RestockingRecommendationItem(
+            item_sku=candidate["item_sku"],
+            item_name=candidate["item_name"],
+            warehouse=candidate["warehouse"],
+            category=candidate["category"],
+            current_demand=candidate["current_demand"],
+            forecasted_demand=candidate["forecasted_demand"],
+            recommended_quantity=candidate["recommended_quantity"],
+            quantity=quantity,
+            unit_cost=unit_cost,
+            line_total=line_total
+        ))
+
+    return RestockingRecommendationResponse(
+        budget=budget,
+        total_estimated_cost=round(budget - remaining, 2),
+        remaining_budget=round(remaining, 2),
+        items=items
+    )
+
+@app.post("/api/restocking/orders", response_model=RestockingOrderOut)
+def create_restocking_order(request: RestockingOrderRequest):
+    """Submit a restocking order built from edited recommendation line items."""
+    if request.budget <= 0:
+        raise HTTPException(status_code=400, detail="Budget must be a positive number")
+
+    valid_items = [item for item in request.items if item.quantity > 0]
+    if not valid_items:
+        raise HTTPException(status_code=400, detail="Order must contain at least one item with a positive quantity")
+
+    # Defense in depth: the greedy algorithm (not the user) decides which SKUs
+    # are eligible and their max quantity, so re-derive each SKU's real gap
+    # here rather than trusting the client's recommendation payload.
+    gap_by_sku = {
+        forecast["item_sku"]: max(forecast["forecasted_demand"] - forecast["current_demand"], 0)
+        for forecast in demand_forecasts
+    }
+    for item in valid_items:
+        gap = gap_by_sku.get(item.item_sku, 0)
+        if gap <= 0:
+            raise HTTPException(status_code=400, detail=f"{item.item_sku} is not eligible for restocking")
+        if item.quantity > gap:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Quantity for {item.item_sku} exceeds the recommended maximum of {gap}"
+            )
+
+    order_date = SIMULATED_TODAY
+    expected_delivery = order_date + timedelta(days=RESTOCKING_LEAD_TIME_DAYS)
+
+    order_items = [
+        {"sku": item.item_sku, "name": item.item_name, "quantity": item.quantity, "unit_price": item.unit_cost}
+        for item in valid_items
+    ]
+    total_value = round(sum(item.quantity * item.unit_cost for item in valid_items), 2)
+
+    warehouses = {item.warehouse for item in valid_items if item.warehouse}
+    categories = {item.category for item in valid_items if item.category}
+
+    new_order = {
+        "id": str(len(orders) + 1),
+        "order_number": f"ORD-2025-{len(orders) + 1:04d}",
+        "customer": "Internal Restocking",
+        "items": order_items,
+        "status": "Submitted",
+        "order_date": order_date.isoformat(),
+        "expected_delivery": expected_delivery.isoformat(),
+        "total_value": total_value,
+        "actual_delivery": None,
+        "warehouse": next(iter(warehouses)) if len(warehouses) == 1 else None,
+        "category": next(iter(categories)) if len(categories) == 1 else None,
+        "order_type": "Restocking"
+    }
+    orders.append(new_order)
+
+    return RestockingOrderOut(**new_order, lead_time_days=compute_lead_time_days(new_order))
+
+@app.get("/api/restocking/orders", response_model=List[RestockingOrderOut])
+def get_restocking_orders():
+    """All submitted restocking orders, unfiltered by the global FilterBar."""
+    restocking = [o for o in orders if o.get("order_type") == "Restocking"]
+    return [RestockingOrderOut(**o, lead_time_days=compute_lead_time_days(o)) for o in restocking]
+
 @app.get("/api/dashboard/summary")
 def get_dashboard_summary(
     warehouse: Optional[str] = None,
@@ -190,8 +363,10 @@ def get_dashboard_summary(
     # Filter inventory
     filtered_inventory = apply_filters(inventory_items, warehouse, category)
 
-    # Filter orders
-    filtered_orders = apply_filters(orders, warehouse, category, status)
+    # Filter orders (excluding restocking orders - those are procurement
+    # spend, not customer-order revenue/fulfillment)
+    customer_orders = [o for o in orders if o.get("order_type") != "Restocking"]
+    filtered_orders = apply_filters(customer_orders, warehouse, category, status)
     filtered_orders = filter_by_month(filtered_orders, month)
 
     total_inventory_value = sum(item["quantity_on_hand"] * item["unit_cost"] for item in filtered_inventory)
@@ -234,6 +409,9 @@ def get_quarterly_reports():
     quarters = {}
 
     for order in orders:
+        if order.get('order_type') == 'Restocking':
+            continue  # procurement spend, not customer-order revenue
+
         order_date = order.get('order_date', '')
         # Determine quarter
         if '2025-01' in order_date or '2025-02' in order_date or '2025-03' in order_date:
@@ -279,6 +457,9 @@ def get_monthly_trends():
     months = {}
 
     for order in orders:
+        if order.get('order_type') == 'Restocking':
+            continue  # procurement spend, not customer-order revenue
+
         order_date = order.get('order_date', '')
         if not order_date:
             continue
