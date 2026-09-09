@@ -56,7 +56,7 @@
                     <div class="items-dropdown">
                       <div v-for="(item, idx) in order.items" :key="idx" class="item-entry">
                         <span class="item-name">{{ translateProductName(item.name) }}</span>
-                        <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ currencySymbol }}{{ item.unit_price }}</span>
+                        <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ formatMoney(item.unit_price) }}</span>
                       </div>
                     </div>
                   </details>
@@ -68,7 +68,46 @@
                 </td>
                 <td class="col-date">{{ formatDate(order.order_date) }}</td>
                 <td class="col-date">{{ formatDate(order.expected_delivery) }}</td>
-                <td class="col-value"><strong>{{ currencySymbol }}{{ order.total_value.toLocaleString() }}</strong></td>
+                <td class="col-value"><strong>{{ formatMoney(order.total_value) }}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">{{ t('orders.submittedOrders.title') }} ({{ restockingOrders.length }})</h3>
+        </div>
+        <div v-if="restockingOrders.length === 0" class="empty-state">
+          {{ t('orders.submittedOrders.empty') }}
+        </div>
+        <div v-else class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>{{ t('orders.table.orderNumber') }}</th>
+                <th>{{ t('orders.table.items') }}</th>
+                <th>{{ t('orders.submittedOrders.leadTime') }}</th>
+                <th>{{ t('orders.table.orderDate') }}</th>
+                <th>{{ t('orders.table.expectedDelivery') }}</th>
+                <th>{{ t('orders.table.status') }}</th>
+                <th>{{ t('orders.table.totalValue') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="order in restockingOrders" :key="order.id">
+                <td><strong>{{ order.order_number }}</strong></td>
+                <td>{{ t('orders.itemsCount', { count: order.items.length }) }}</td>
+                <td>{{ t('orders.submittedOrders.days', { count: order.lead_time_days }) }}</td>
+                <td>{{ formatDate(order.order_date) }}</td>
+                <td>{{ formatDate(order.expected_delivery) }}</td>
+                <td>
+                  <span :class="['badge', getOrderStatusClass(order.status)]">
+                    {{ t(`status.${order.status.toLowerCase()}`) }}
+                  </span>
+                </td>
+                <td><strong>{{ formatMoney(order.total_value) }}</strong></td>
               </tr>
             </tbody>
           </table>
@@ -79,7 +118,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { api } from '../api'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
@@ -87,14 +126,12 @@ import { useI18n } from '../composables/useI18n'
 export default {
   name: 'Orders',
   setup() {
-    const { t, currentCurrency, translateProductName, translateCustomerName } = useI18n()
+    const { t, translateProductName, translateCustomerName, formatMoney } = useI18n()
 
-    const currencySymbol = computed(() => {
-      return currentCurrency.value === 'JPY' ? '¥' : '$'
-    })
     const loading = ref(true)
     const error = ref(null)
     const orders = ref([])
+    const restockingOrders = ref([])
 
     // Use shared filters
     const {
@@ -108,14 +145,27 @@ export default {
     const loadOrders = async () => {
       try {
         loading.value = true
+        error.value = null
         const filters = getCurrentFilters()
-        const fetchedOrders = await api.getOrders(filters)
+
+        // Restocking orders are unfiltered by design - they always show everything placed
+        const [fetchedOrders, fetchedRestocking] = await Promise.all([
+          api.getOrders(filters),
+          api.getRestockingOrders()
+        ])
 
         // Sort orders by order_date (earliest first)
         orders.value = fetchedOrders.sort((a, b) => {
           const dateA = new Date(a.order_date)
           const dateB = new Date(b.order_date)
           return dateA - dateB
+        })
+
+        // Sort restocking orders newest-first
+        restockingOrders.value = fetchedRestocking.sort((a, b) => {
+          const dateA = new Date(a.order_date)
+          const dateB = new Date(b.order_date)
+          return dateB - dateA
         })
       } catch (err) {
         error.value = 'Failed to load orders: ' + err.message
@@ -138,7 +188,8 @@ export default {
         'Delivered': 'success',
         'Shipped': 'info',
         'Processing': 'warning',
-        'Backordered': 'danger'
+        'Backordered': 'danger',
+        'Submitted': 'info'
       }
       return statusMap[status] || 'info'
     }
@@ -160,10 +211,11 @@ export default {
       loading,
       error,
       orders,
+      restockingOrders,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
-      currencySymbol,
+      formatMoney,
       translateProductName,
       translateCustomerName
     }
@@ -172,35 +224,48 @@ export default {
 </script>
 
 <style scoped>
-/* Fixed table layout to prevent column shifting */
+.empty-state {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.938rem;
+}
+
+/* table-layout: auto lets columns compress on the now-narrower content
+   column (sidebar took ~240px); fixed layout held them rigid and forced
+   scrolling far more often than necessary. */
 .orders-table {
-  table-layout: fixed;
+  table-layout: auto;
   width: 100%;
 }
 
-/* Column widths */
+/* Column floors reduced from the original fixed widths (which summed to
+   ~1040px) so scrolling engages less often; min-width still keeps each
+   column from collapsing unreadably. */
 .col-order-number {
-  width: 130px;
+  min-width: 110px;
 }
 
 .col-customer {
-  width: 180px;
+  min-width: 140px;
+  word-break: break-word;
 }
 
 .col-items {
-  width: 200px;
+  min-width: 160px;
+  word-break: break-word;
 }
 
 .col-status {
-  width: 130px;
+  min-width: 110px;
 }
 
 .col-date {
-  width: 140px;
+  min-width: 110px;
 }
 
 .col-value {
-  width: 120px;
+  min-width: 100px;
 }
 
 /* Items details styling */

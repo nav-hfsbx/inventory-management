@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import en from '../locales/en'
 import ja from '../locales/ja'
+import { formatCurrencyWithDecimals } from '../utils/currency'
 
 const translations = {
   en,
@@ -64,6 +65,14 @@ export function useI18n() {
     }
   }
 
+  // Single money-formatting path for the whole app: converts USD -> JPY
+  // (when applicable) and formats, so no component hand-rolls its own
+  // currency math.
+  const formatMoney = (amount, decimals = 2) =>
+    formatCurrencyWithDecimals(Number(amount) || 0, currentCurrency.value, decimals)
+
+  const currencySymbol = computed(() => currentCurrency.value === 'JPY' ? '¥' : '$')
+
   const availableLocales = computed(() => Object.keys(translations))
 
   const localeName = computed(() => {
@@ -119,6 +128,8 @@ export function useI18n() {
     setLocale,
     currentLocale: computed(() => currentLocale.value),
     currentCurrency,
+    formatMoney,
+    currencySymbol,
     availableLocales,
     localeName,
     translateProductName,
