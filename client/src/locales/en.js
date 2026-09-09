@@ -10,6 +10,10 @@ export default {
     reports: 'Reports',
     operations: 'Operations',
     analytics: 'Analytics',
+    expandSidebar: 'Expand sidebar',
+    collapseSidebar: 'Collapse sidebar',
+    mainNav: 'Main navigation',
+    openNav: 'Open navigation',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },

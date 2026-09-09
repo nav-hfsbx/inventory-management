@@ -10,7 +10,7 @@
           <button
             class="mobile-nav-toggle"
             type="button"
-            aria-label="Open navigation"
+            :aria-label="t('nav.openNav')"
             :aria-expanded="mobileOpen"
             aria-controls="app-sidebar"
             @click="openMobile"
@@ -51,6 +51,7 @@ import { useRoute } from 'vue-router'
 import { api } from './api'
 import { useAuth } from './composables/useAuth'
 import { useSidebar } from './composables/useSidebar'
+import { useI18n } from './composables/useI18n'
 import FilterBar from './components/FilterBar.vue'
 import AppSidebar from './components/AppSidebar.vue'
 import ProfileDetailsModal from './components/ProfileDetailsModal.vue'
@@ -68,6 +69,7 @@ export default {
     const { currentUser } = useAuth()
     const route = useRoute()
     const { mobileOpen, openMobile, closeMobile } = useSidebar()
+    const { t } = useI18n()
     const showProfileDetails = ref(false)
     const showTasks = ref(false)
     const apiTasks = ref([])
@@ -167,6 +169,7 @@ export default {
     })
 
     return {
+      t,
       showProfileDetails,
       showTasks,
       tasks,

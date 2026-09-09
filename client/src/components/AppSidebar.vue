@@ -17,7 +17,7 @@
         :class="{ centered: collapsed }"
         type="button"
         :aria-expanded="!collapsed"
-        :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+        :aria-label="collapsed ? t('nav.expandSidebar') : t('nav.collapseSidebar')"
         @click="toggleCollapsed"
       >
         <svg
@@ -33,7 +33,7 @@
       </button>
     </div>
 
-    <nav class="sidebar-nav" aria-label="Main">
+    <nav class="sidebar-nav" :aria-label="t('nav.mainNav')">
       <template v-for="(group, groupIndex) in groupedNavItems" :key="group.group">
         <div v-if="railCollapsed" class="group-divider" :class="{ first: groupIndex === 0 }"></div>
         <div v-else class="group-label" :class="{ first: groupIndex === 0 }">{{ t(`nav.${group.group}`) }}</div>

@@ -10,6 +10,10 @@ export default {
     reports: 'レポート',
     operations: 'オペレーション',
     analytics: '分析',
+    expandSidebar: 'サイドバーを展開',
+    collapseSidebar: 'サイドバーを折りたたむ',
+    mainNav: 'メインナビゲーション',
+    openNav: 'ナビゲーションを開く',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
