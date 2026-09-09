@@ -128,9 +128,15 @@ export default {
     const error = ref(null)
 
     const budget = ref(5000)
-    const totalEstimatedCost = ref(0)
-    const remainingBudget = ref(0)
     const lineItems = ref([])
+
+    // Derived live from the editable lineItems (not stored from the server
+    // response) so these numbers stay correct after a quantity edit or a
+    // row removal, instead of only reflecting the last-loaded recommendation.
+    const totalEstimatedCost = computed(() =>
+      lineItems.value.reduce((sum, item) => sum + item.quantity * item.unit_cost, 0)
+    )
+    const remainingBudget = computed(() => budget.value - totalEstimatedCost.value)
 
     const submitting = ref(false)
     const submitError = ref(null)
@@ -144,8 +150,6 @@ export default {
     const loadRecommendations = async () => {
       if (!budget.value || budget.value <= 0) {
         lineItems.value = []
-        totalEstimatedCost.value = 0
-        remainingBudget.value = 0
         error.value = null
         loading.value = false
         refreshing.value = false
@@ -165,8 +169,6 @@ export default {
 
         if (myRequestId !== requestId) return
 
-        totalEstimatedCost.value = data.total_estimated_cost
-        remainingBudget.value = data.remaining_budget
         lineItems.value = data.items.map(item => ({ ...item }))
       } catch (err) {
         if (myRequestId !== requestId) return
@@ -179,8 +181,13 @@ export default {
       }
     }
 
-    // Debounce budget-driven reloads so slider dragging doesn't spam requests
+    // Debounce budget-driven reloads so slider dragging doesn't spam requests.
+    // Dragging the slider again counts as a new interaction, so the previous
+    // order's confirmation banner is cleared here rather than inside
+    // loadRecommendations (which also runs right after a successful submit,
+    // when the banner should stay visible).
     watch(budget, () => {
+      lastPlacedOrder.value = null
       if (budgetDebounceTimer) clearTimeout(budgetDebounceTimer)
       budgetDebounceTimer = setTimeout(() => {
         loadRecommendations()
@@ -190,6 +197,7 @@ export default {
     // Filter changes reload immediately; every reload fully replaces lineItems,
     // discarding any in-progress edits (surfaced to the user via refresh-note).
     watch([selectedLocation, selectedCategory], () => {
+      lastPlacedOrder.value = null
       loadRecommendations()
     })
 
@@ -214,18 +222,17 @@ export default {
     const placeOrder = async () => {
       submitting.value = true
       submitError.value = null
+      lastPlacedOrder.value = null
       try {
+        // Only item_sku + quantity are sent - name/cost/warehouse/category
+        // are always re-derived server-side from demand_forecasts.
         const payload = {
           budget: budget.value,
           items: lineItems.value
             .filter(item => item.quantity > 0)
             .map(item => ({
               item_sku: item.item_sku,
-              item_name: item.item_name,
-              quantity: item.quantity,
-              unit_cost: item.unit_cost,
-              warehouse: item.warehouse,
-              category: item.category
+              quantity: item.quantity
             }))
         }
 

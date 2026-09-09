@@ -160,11 +160,7 @@ class RestockingRecommendationResponse(BaseModel):
 
 class RestockingOrderLineItem(BaseModel):
     item_sku: str
-    item_name: str
     quantity: int
-    unit_cost: float
-    warehouse: Optional[str] = None
-    category: Optional[str] = None
 
 class RestockingOrderRequest(BaseModel):
     budget: float
@@ -300,37 +296,54 @@ def create_restocking_order(request: RestockingOrderRequest):
         raise HTTPException(status_code=400, detail="Order must contain at least one item with a positive quantity")
 
     # Defense in depth: the greedy algorithm (not the user) decides which SKUs
-    # are eligible and their max quantity, so re-derive each SKU's real gap
-    # here rather than trusting the client's recommendation payload.
-    gap_by_sku = {
-        forecast["item_sku"]: max(forecast["forecasted_demand"] - forecast["current_demand"], 0)
-        for forecast in demand_forecasts
-    }
+    # are eligible and their max quantity, and demand_forecasts is also the
+    # only source of truth for name/cost/warehouse/category - re-derive
+    # everything server-side from it rather than trusting the client payload.
+    # Quantities are summed per SKU first so two line items for the same SKU
+    # can't each pass the per-line gap check while their total exceeds it.
+    forecast_by_sku = {forecast["item_sku"]: forecast for forecast in demand_forecasts}
+    requested_by_sku = {}
     for item in valid_items:
-        gap = gap_by_sku.get(item.item_sku, 0)
+        requested_by_sku[item.item_sku] = requested_by_sku.get(item.item_sku, 0) + item.quantity
+
+    for sku, requested_qty in requested_by_sku.items():
+        forecast = forecast_by_sku.get(sku)
+        gap = max(forecast["forecasted_demand"] - forecast["current_demand"], 0) if forecast else 0
         if gap <= 0:
-            raise HTTPException(status_code=400, detail=f"{item.item_sku} is not eligible for restocking")
-        if item.quantity > gap:
+            raise HTTPException(status_code=400, detail=f"{sku} is not eligible for restocking")
+        if requested_qty > gap:
             raise HTTPException(
                 status_code=400,
-                detail=f"Quantity for {item.item_sku} exceeds the recommended maximum of {gap}"
+                detail=f"Quantity for {sku} exceeds the recommended maximum of {gap}"
             )
 
     order_date = SIMULATED_TODAY
     expected_delivery = order_date + timedelta(days=RESTOCKING_LEAD_TIME_DAYS)
 
     order_items = [
-        {"sku": item.item_sku, "name": item.item_name, "quantity": item.quantity, "unit_price": item.unit_cost}
-        for item in valid_items
+        {
+            "sku": sku,
+            "name": forecast_by_sku[sku]["item_name"],
+            "quantity": quantity,
+            "unit_price": forecast_by_sku[sku]["unit_cost"]
+        }
+        for sku, quantity in requested_by_sku.items()
     ]
-    total_value = round(sum(item.quantity * item.unit_cost for item in valid_items), 2)
+    total_value = round(
+        sum(quantity * forecast_by_sku[sku]["unit_cost"] for sku, quantity in requested_by_sku.items()),
+        2
+    )
 
-    warehouses = {item.warehouse for item in valid_items if item.warehouse}
-    categories = {item.category for item in valid_items if item.category}
+    warehouses = {forecast_by_sku[sku]["warehouse"] for sku in requested_by_sku}
+    categories = {forecast_by_sku[sku]["category"] for sku in requested_by_sku}
+
+    # len(orders)+1 would collide with real data: orders.json's ids aren't a
+    # clean 1..N sequence (e.g. 201-210 appear twice), so derive from the max.
+    next_id = max((int(o["id"]) for o in orders), default=0) + 1
 
     new_order = {
-        "id": str(len(orders) + 1),
-        "order_number": f"ORD-2025-{len(orders) + 1:04d}",
+        "id": str(next_id),
+        "order_number": f"ORD-2025-{next_id:04d}",
         "customer": "Internal Restocking",
         "items": order_items,
         "status": "Submitted",
