@@ -10,7 +10,7 @@
     <div v-else>
       <div class="card">
         <div class="card-header">
-          <h3 class="card-title">{{ t('restocking.budgetLabel') }}: {{ currencySymbol }}{{ budget.toLocaleString() }}</h3>
+          <h3 class="card-title">{{ t('restocking.budgetLabel') }}: {{ formatMoney(budget) }}</h3>
           <span v-if="refreshing" class="refreshing-indicator">{{ t('common.loading') }}</span>
         </div>
         <input
@@ -26,11 +26,11 @@
         <div class="budget-summary">
           <div class="summary-item">
             <span class="summary-label">{{ t('restocking.totalEstimatedCost') }}</span>
-            <span class="summary-value">{{ currencySymbol }}{{ totalEstimatedCost.toLocaleString() }}</span>
+            <span class="summary-value">{{ formatMoney(totalEstimatedCost) }}</span>
           </div>
           <div class="summary-item">
             <span class="summary-label">{{ t('restocking.remainingBudget') }}</span>
-            <span class="summary-value">{{ currencySymbol }}{{ remainingBudget.toLocaleString() }}</span>
+            <span class="summary-value">{{ formatMoney(remainingBudget) }}</span>
           </div>
         </div>
       </div>
@@ -81,7 +81,7 @@
                 <td>{{ item.current_demand }}</td>
                 <td>{{ item.forecasted_demand }}</td>
                 <td>{{ item.recommended_quantity }}</td>
-                <td>{{ currencySymbol }}{{ item.unit_cost.toLocaleString() }}</td>
+                <td>{{ formatMoney(item.unit_cost) }}</td>
                 <td>
                   <input
                     type="number"
@@ -93,7 +93,7 @@
                     @blur="clampQuantity(item)"
                   >
                 </td>
-                <td><strong>{{ currencySymbol }}{{ lineTotal(item).toLocaleString() }}</strong></td>
+                <td><strong>{{ formatMoney(lineTotal(item)) }}</strong></td>
                 <td>
                   <button class="btn-remove" @click="removeItem(item)">
                     {{ t('restocking.table.remove') }}
@@ -117,16 +117,16 @@ import { useI18n } from '../composables/useI18n'
 export default {
   name: 'Restocking',
   setup() {
-    const { t, currentCurrency, translateWarehouse } = useI18n()
-
-    const currencySymbol = computed(() => {
-      return currentCurrency.value === 'JPY' ? '¥' : '$'
-    })
+    const { t, translateWarehouse, formatMoney } = useI18n()
 
     const loading = ref(true)
     const refreshing = ref(false)
     const error = ref(null)
 
+    // budget, unit_cost and everything derived from them below are USD
+    // values that get POSTed to /api/restocking/orders (backend works in
+    // USD only) - formatMoney() is used purely for JPY display in the
+    // template and must never feed back into these refs/computeds.
     const budget = ref(5000)
     const lineItems = ref([])
 
@@ -250,7 +250,7 @@ export default {
 
     return {
       t,
-      currencySymbol,
+      formatMoney,
       translateWarehouse,
       loading,
       refreshing,

@@ -60,8 +60,8 @@
                 <td>{{ translateCategory(item.category) }}</td>
                 <td><strong>{{ item.quantity_on_hand }}</strong></td>
                 <td>{{ item.reorder_point }}</td>
-                <td>{{ currencySymbol }}{{ item.unit_cost.toFixed(2) }}</td>
-                <td><strong>{{ currencySymbol }}{{ (item.quantity_on_hand * item.unit_cost).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) }}</strong></td>
+                <td>{{ formatMoney(item.unit_cost) }}</td>
+                <td><strong>{{ formatMoney(item.quantity_on_hand * item.unit_cost) }}</strong></td>
                 <td>{{ translateWarehouse(item.location) }}</td>
                 <td>
                   <span :class="['badge', getStockStatusClass(item)]">
@@ -96,11 +96,7 @@ export default {
     InventoryDetailModal
   },
   setup() {
-    const { t, currentCurrency, translateProductName, translateWarehouse } = useI18n()
-
-    const currencySymbol = computed(() => {
-      return currentCurrency.value === 'JPY' ? '¥' : '$'
-    })
+    const { t, translateProductName, translateWarehouse, formatMoney } = useI18n()
 
     const loading = ref(true)
     const error = ref(null)
@@ -216,7 +212,7 @@ export default {
       showItemModal,
       selectedItem,
       showItemDetail,
-      currencySymbol,
+      formatMoney,
       translateProductName,
       translateWarehouse
     }

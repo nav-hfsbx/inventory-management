@@ -31,8 +31,8 @@
               <tr v-for="q in quarterlyData" :key="q.quarter">
                 <td><strong>{{ q.quarter }}</strong></td>
                 <td>{{ q.total_orders }}</td>
-                <td>{{ currencySymbol }}{{ formatNumber(q.total_revenue) }}</td>
-                <td>{{ currencySymbol }}{{ formatNumber(q.avg_order_value) }}</td>
+                <td>{{ formatMoney(q.total_revenue) }}</td>
+                <td>{{ formatMoney(q.avg_order_value) }}</td>
                 <td>
                   <span :class="getFulfillmentClass(q.fulfillment_rate)">
                     {{ q.fulfillment_rate }}%
@@ -59,7 +59,7 @@
                 <div
                   class="bar"
                   :style="{ height: getBarHeight(month.revenue) + 'px' }"
-                  :title="currencySymbol + formatNumber(month.revenue)"
+                  :title="formatMoney(month.revenue)"
                 ></div>
               </div>
               <div class="bar-label">{{ formatMonth(month.month) }}</div>
@@ -91,7 +91,7 @@
               <tr v-for="(month, index) in monthlyData" :key="month.month">
                 <td><strong>{{ formatMonth(month.month) }}</strong></td>
                 <td>{{ month.order_count }}</td>
-                <td>{{ currencySymbol }}{{ formatNumber(month.revenue) }}</td>
+                <td>{{ formatMoney(month.revenue) }}</td>
                 <td>
                   <span v-if="index > 0" :class="getChangeClass(month.revenue, monthlyData[index - 1].revenue)">
                     {{ getChangeValue(month.revenue, monthlyData[index - 1].revenue) }}
@@ -116,11 +116,11 @@
           <div class="stat-label">
             {{ hasActiveFilters ? t('reports.summary.totalRevenueFiltered') : t('reports.summary.totalRevenue') }}
           </div>
-          <div class="stat-value">{{ currencySymbol }}{{ formatNumber(totalRevenue) }}</div>
+          <div class="stat-value">{{ formatMoney(totalRevenue) }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">{{ t('reports.summary.avgMonthlyRevenue') }}</div>
-          <div class="stat-value">{{ currencySymbol }}{{ formatNumber(avgMonthlyRevenue) }}</div>
+          <div class="stat-value">{{ formatMoney(avgMonthlyRevenue) }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">
@@ -146,11 +146,7 @@ import { useI18n } from '../composables/useI18n'
 export default {
   name: 'Reports',
   setup() {
-    const { t, currentCurrency, currentLocale } = useI18n()
-
-    const currencySymbol = computed(() => {
-      return currentCurrency.value === 'JPY' ? '¥' : '$'
-    })
+    const { t, formatMoney } = useI18n()
 
     const loading = ref(true)
     const error = ref(null)
@@ -224,15 +220,6 @@ export default {
       return monthlyData.value.reduce((max, month) => Math.max(max, month.revenue), 0)
     })
 
-    const formatNumber = (num) => {
-      const locale = currentLocale.value === 'ja' ? 'ja-JP' : 'en-US'
-      const n = Number(num)
-      if (!Number.isFinite(n)) {
-        return (0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      }
-      return n.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    }
-
     const formatMonth = (monthStr) => {
       if (typeof monthStr !== 'string') {
         return t('reports.notAvailable')
@@ -274,11 +261,11 @@ export default {
     const getChangeValue = (current, previous) => {
       const change = current - previous
       if (change > 0) {
-        return `+${currencySymbol.value}${formatNumber(change)}`
+        return `+${formatMoney(change)}`
       } else if (change < 0) {
-        return `-${currencySymbol.value}${formatNumber(Math.abs(change))}`
+        return `-${formatMoney(Math.abs(change))}`
       } else {
-        return `${currencySymbol.value}0.00`
+        return formatMoney(0)
       }
     }
 
@@ -313,12 +300,11 @@ export default {
       quarterlyData,
       monthlyData,
       hasActiveFilters,
-      currencySymbol,
+      formatMoney,
       totalRevenue,
       avgMonthlyRevenue,
       totalOrders,
       bestQuarter,
-      formatNumber,
       formatMonth,
       getBarHeight,
       getFulfillmentClass,
