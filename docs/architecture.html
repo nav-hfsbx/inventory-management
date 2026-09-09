@@ -580,12 +580,13 @@
         <div class="tree">
 <span class="dir">views/</span>          Dashboard, Inventory, Orders,
               Demand, Restocking, Spending,
-              Reports, Backlog  <span class="note">— one .vue per route</span>
-<span class="dir">components/</span>     FilterBar, *DetailModal ×4,
-              ProfileMenu, TasksModal,
-              LanguageSwitcher
+              Reports  <span class="note">— one .vue per route</span>
+              Backlog  <span class="note">— file exists, not routed</span>
+<span class="dir">components/</span>     AppSidebar, FilterBar,
+              *DetailModal ×4, ProfileMenu,
+              TasksModal, LanguageSwitcher
 <span class="dir">composables/</span>    useFilters, useAuth <span class="note">(mock)</span>,
-              useI18n
+              useI18n, useSidebar
 <span class="dir">locales/</span>        en.js, ja.js
 <span class="dir">utils/</span>          currency.js
 api.js          one axios call per endpoint
@@ -616,7 +617,7 @@ generate_data.py  <span class="note">— produced the sample data</span></div>
     <div class="pattern-grid">
       <div class="pattern-card">
         <h3>Singleton composables</h3>
-        <p><code>useFilters()</code>, <code>useAuth()</code>, and <code>useI18n()</code> all hold module-level refs — calling the composable twice returns the <em>same</em> reactive state, not a fresh copy per component.</p>
+        <p><code>useFilters()</code>, <code>useAuth()</code>, <code>useI18n()</code>, and <code>useSidebar()</code> all hold module-level refs — calling the composable twice returns the <em>same</em> reactive state, not a fresh copy per component.</p>
       </div>
       <div class="pattern-card">
         <h3>Raw refs, derived computeds</h3>
